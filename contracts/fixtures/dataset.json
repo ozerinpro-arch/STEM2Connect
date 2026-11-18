@@ -1,0 +1,29 @@
+{
+  "id": "dataset_demo",
+  "synthetic": true,
+  "row_count": 200,
+  "columns": [
+    {
+      "name": "system",
+      "type": "string",
+      "missing_count": 0
+    },
+    {
+      "name": "difficulty",
+      "type": "string",
+      "missing_count": 0
+    },
+    {
+      "name": "success",
+      "type": "integer",
+      "missing_count": 0
+    }
+  ],
+  "preview": [
+    {
+      "system": "A",
+      "difficulty": "easy",
+      "success": 1
+    }
+  ]
+}

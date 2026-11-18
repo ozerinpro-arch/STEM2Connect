@@ -1,0 +1,12 @@
+[
+  {
+    "id": "simpson-search",
+    "label": "Search benchmark",
+    "synthetic": true
+  },
+  {
+    "id": "stable-search",
+    "label": "Stable comparison",
+    "synthetic": true
+  }
+]

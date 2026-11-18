@@ -1,0 +1,17 @@
+{
+  "id": "run_demo",
+  "plan_id": "plan_demo",
+  "status": "failed",
+  "dataset_hash": "synthetic-fixture",
+  "estimates": [],
+  "warnings": [
+    "Synthetic demonstration data",
+    "Observed and standardized estimates answer different population questions"
+  ],
+  "explanation_status": "not_requested",
+  "error": {
+    "code": "INVALID_PLAN",
+    "message": "A target stratum has no observations.",
+    "details": {}
+  }
+}

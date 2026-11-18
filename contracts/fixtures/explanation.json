@@ -1,0 +1,20 @@
+{
+  "run_id": "run_demo",
+  "summary": "The observed ranking depends on query difficulty composition.",
+  "statements": [
+    {
+      "text": "A has a higher success rate in both difficulty groups.",
+      "estimate_ids": [
+        "stratum_A_easy",
+        "stratum_B_easy",
+        "stratum_A_hard",
+        "stratum_B_hard"
+      ]
+    }
+  ],
+  "limitations": [
+    "Synthetic data",
+    "Equal weighting defines a different target population",
+    "No causal conclusion"
+  ]
+}

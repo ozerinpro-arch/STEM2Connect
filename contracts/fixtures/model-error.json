@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "MODEL_UNAVAILABLE",
+    "message": "The calculation is ready. Explanation is temporarily unavailable.",
+    "details": {}
+  },
+  "request_id": "request_demo"
+}

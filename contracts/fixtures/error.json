@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "UNSUPPORTED_SCHEMA",
+    "message": "Select a binary outcome and two groups.",
+    "details": {}
+  },
+  "request_id": "request_demo"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "plan_demo",
+  "dataset_id": "dataset_demo",
+  "claim": "System B has a higher success rate than A",
+  "outcome_column": "success",
+  "group_column": "system",
+  "stratum_column": "difficulty",
+  "positive_value": 1,
+  "groups": [
+    "A",
+    "B"
+  ],
+  "target_weights": {
+    "easy": 0.5,
+    "hard": 0.5
+  },
+  "confirmed": true
+}

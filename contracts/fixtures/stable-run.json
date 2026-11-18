@@ -1,0 +1,101 @@
+{
+  "id": "run_stable",
+  "plan_id": "plan_stable",
+  "status": "completed",
+  "dataset_hash": "1ccbb6e095e00993096a38ac690734b7aca3e19345adfb6470d81fad31ccf507",
+  "estimates": [
+    {
+      "id": "observed_A_all",
+      "estimand": "observed",
+      "group": "A",
+      "stratum": null,
+      "numerator": 17,
+      "denominator": 20,
+      "value": 0.85,
+      "unit": "proportion",
+      "formula": "17/20"
+    },
+    {
+      "id": "observed_B_all",
+      "estimand": "observed",
+      "group": "B",
+      "stratum": null,
+      "numerator": 13,
+      "denominator": 20,
+      "value": 0.65,
+      "unit": "proportion",
+      "formula": "13/20"
+    },
+    {
+      "id": "stratum_A_easy",
+      "estimand": "stratum",
+      "group": "A",
+      "stratum": "easy",
+      "numerator": 9,
+      "denominator": 10,
+      "value": 0.9,
+      "unit": "proportion",
+      "formula": "9/10"
+    },
+    {
+      "id": "stratum_B_easy",
+      "estimand": "stratum",
+      "group": "B",
+      "stratum": "easy",
+      "numerator": 7,
+      "denominator": 10,
+      "value": 0.7,
+      "unit": "proportion",
+      "formula": "7/10"
+    },
+    {
+      "id": "stratum_A_hard",
+      "estimand": "stratum",
+      "group": "A",
+      "stratum": "hard",
+      "numerator": 8,
+      "denominator": 10,
+      "value": 0.8,
+      "unit": "proportion",
+      "formula": "8/10"
+    },
+    {
+      "id": "stratum_B_hard",
+      "estimand": "stratum",
+      "group": "B",
+      "stratum": "hard",
+      "numerator": 6,
+      "denominator": 10,
+      "value": 0.6,
+      "unit": "proportion",
+      "formula": "6/10"
+    },
+    {
+      "id": "standardized_A_all",
+      "estimand": "standardized",
+      "group": "A",
+      "stratum": null,
+      "numerator": null,
+      "denominator": null,
+      "value": 0.85,
+      "unit": "proportion",
+      "formula": "0.5*(9/10)+0.5*(8/10)"
+    },
+    {
+      "id": "standardized_B_all",
+      "estimand": "standardized",
+      "group": "B",
+      "stratum": null,
+      "numerator": null,
+      "denominator": null,
+      "value": 0.65,
+      "unit": "proportion",
+      "formula": "0.5*(7/10)+0.5*(6/10)"
+    }
+  ],
+  "warnings": [
+    "Synthetic demonstration data"
+  ],
+  "explanation_status": "not_requested",
+  "error": null
+}

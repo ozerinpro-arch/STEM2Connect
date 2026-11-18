@@ -1,0 +1,13 @@
+{
+  "id": "run_demo",
+  "plan_id": "plan_demo",
+  "status": "running",
+  "dataset_hash": "synthetic-fixture",
+  "estimates": [],
+  "warnings": [
+    "Synthetic demonstration data",
+    "Observed and standardized estimates answer different population questions"
+  ],
+  "explanation_status": "not_requested",
+  "error": null
+}
