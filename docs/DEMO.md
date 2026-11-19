@@ -4,9 +4,9 @@
 
 **Track** — Scientific Research
 
-ResearchLens helps researchers inspect how the makeup of a dataset and the choice of a target population affect a comparison. Upload a CSV or start with a synthetic example, describe the claim, and confirm an analysis plan for a binary outcome, two groups, and one stratification variable. ResearchLens shows observed rates, rates within each stratum, and rates standardized to the same user-defined mix. Each estimate links to its formula and, where applicable, the underlying counts. A downloadable experiment bundle contains the plan, results, and a Python script that reproduces the calculation. An optional AI explanation references the calculated estimates when a model is configured.
+ResearchLens helps researchers inspect how the makeup of a dataset and the choice of a target population affect a comparison. Upload a CSV or start with a synthetic example, describe the claim, and confirm an analysis plan for a binary outcome, two groups, and one stratification variable. ResearchLens shows observed rates, rates within each stratum, and rates standardized to the same user-defined mix. Each estimate links to its formula and, where applicable, the underlying counts. A downloadable experiment bundle contains the plan, results, and a Python script that reproduces the calculation. An optional local Qwen explanation references the calculated estimates. A sample composition chart exposes the imbalance, and a reweighting control runs a new version of the same experiment and shows both standardized results.
 
-**AI disclosure.** OpenAI Codex assisted with backend and frontend implementation, tests, review and demo preparation. An optional server-side model can explain aggregate estimates with references to the underlying results. A real provider should be named only after it is configured and verified.
+**AI disclosure.** OpenAI Codex assisted with backend and frontend implementation, tests, review and demo preparation. An optional server-side model can explain aggregate estimates with references to the underlying results. The application was verified with Qwen3-4B-Instruct-2507 running locally via Ollama.
 
 In the example, system B has a higher observed success rate because it received a much larger share of easy tasks. A has a higher success rate within each difficulty level and under an equal-mix target. The data are synthetic, and the comparisons are descriptive.
 
@@ -22,16 +22,16 @@ In the example, system B has a higher observed success rate because it received 
 | 3:30–4:05 | Download the ZIP with the synthetic CSV included. Open a prepared terminal in the extracted directory and run `python3 reproduce.py`. Point to the matching 55% and 45% as proportions `0.55` and `0.45`. | “The bundle saves the plan and the results. The script checks the archived files and recomputes the estimates in this directory using Python’s standard library.” |
 | 4:05–4:35 | On the upload screen, choose the checked-in `stable-search.csv` as a custom CSV. Enter B as Group 2 when it falls outside the preview. Use the same column roles and equal weights, then show its observed and standardized rates. | “The same workflow accepts a CSV. This second synthetic dataset gives 85% for A and 65% for B in both comparisons. Both groups already have the same 50–50 mix as the target, so their rates are unchanged.” |
 
-Numeric references are the [Search benchmark fixture](../contracts/fixtures/run.json) and the [Stable comparison fixture](../contracts/fixtures/stable-run.json). The [Stable comparison CSV](../contracts/fixtures/stable-search.csv) can be used to exercise the upload path without exposing user data. The extended script is for a live presentation. A separate 2:18 narrated cut was assembled from screenshots of the working local browser flow and verified against the downloaded archive.
+Numeric references are the [Search benchmark fixture](../contracts/fixtures/run.json) and the [Stable comparison fixture](../contracts/fixtures/stable-run.json). The [Stable comparison CSV](../contracts/fixtures/stable-search.csv) can be used to exercise the upload path without exposing user data. The extended script is for a live presentation. A separate narrated review cut was assembled from screenshots of the working browser flow and the verified downloaded archive.
 
 ## Submission materials and status
 
 | Material | Status |
 | --- | --- |
 | English project description | Draft above. Confirm it against the build used for recording. |
-| Repository and setup instructions | [Repository](https://github.com/ozerinpro-arch/STEM2Connect) and [full setup instructions](../README.md). The integrated revision is local and awaits publication. |
+| Repository and setup instructions | [Repository](https://github.com/ozerinpro-arch/STEM2Connect) and [full setup instructions](../README.md). Use the integrated branch for review. |
 | Reproducible experiment | Downloaded a ZIP from the recorded browser run and reproduced its estimates in a clean directory. |
-| Video | A local 2:18 MP4 with English synthetic narration is ready. A shareable link awaits publication. The [official rules](https://stem2connect-online-hackathon.devpost.com/rules) set a six-minute maximum. |
+| Video | A local MP4 with English synthetic narration is prepared for review. YouTube and Vimeo publishing are on hold. The [official rules](https://stem2connect-online-hackathon.devpost.com/rules) set a six-minute maximum. |
 | Browser and user checks | Automated browser checks passed for the example and CSV, plan edits, session reload, keyboard, two themes, four viewport widths, model failure and ZIP reproduction. Separate trials with 3–5 people remain pending. |
-| Live AI verification | The backend supports an optional provider configuration and a separate unavailable response. A successful live provider run needs configuration and verification. |
+| Live AI verification | Verified the live Qwen response through the browser, opened a cited formula and restored the explanation after reload. Also tested the unavailable response separately. |
 | Participant details and final submission | Confirm the participant names and roles, publish approved materials, and complete submission. These actions are pending. |

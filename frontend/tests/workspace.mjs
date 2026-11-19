@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import AxeBuilder from '@axe-core/playwright'
 
+const liveModel = process.env.RESEARCHLENS_TEST_LIVE_MODEL === '1'
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const python = process.env.PYTHON || join(root, '.venv/bin/python')
 const temporary = await mkdtemp(join(tmpdir(), 'researchlens-browser-'))
@@ -18,7 +19,7 @@ await new Promise((resolve, reject) => probe.close(error => error ? reject(error
 const base = `http://127.0.0.1:${port}`
 const server = spawn(python, ['-m', 'uvicorn', 'backend.main:api', '--port', String(port), '--no-access-log'], {
   cwd: root, stdio: 'inherit',
-  env: {...process.env, RESEARCHLENS_MODEL_URL: '', RESEARCHLENS_SECURE_COOKIE: '0'},
+  env: {...process.env, RESEARCHLENS_MODEL_URL: liveModel ? process.env.RESEARCHLENS_MODEL_URL : '', RESEARCHLENS_SECURE_COOKIE: '0'},
 })
 const serverDone = new Promise(resolve => server.once('close', resolve))
 let browser
@@ -56,6 +57,9 @@ try {
   await visible(page.getByText('0.5*(9/10)+0.5*(18/90)', {exact: true}))
   await page.getByLabel('Stratum', {exact: true}).selectOption('hard')
   await visible(page.getByRole('button', {name: /hard, group A, 20%/}))
+  const composition = page.getByRole('region', {name: 'Sample composition'})
+  await visible(composition.getByText('90 of 100 observations', {exact: true}))
+  await visible(composition.getByText('10 of 100 observations', {exact: true}))
   await page.getByText('View all estimates as a table', {exact: true}).click()
   await visible(page.getByRole('region', {name: 'All estimates'}).getByRole('table'))
   await accessible(page)
@@ -96,7 +100,16 @@ try {
   assert.equal(await page.getByRole('button', {name: 'Generate explanation'}).isDisabled(), true)
   await page.getByLabel('Allow sharing aggregate estimates').check()
   await page.getByRole('button', {name: 'Generate explanation'}).click()
-  await visible(page.getByText('The last explanation request failed.', {exact: false}))
+  if (liveModel) {
+    await page.getByText('Group aliases:', {exact: false}).waitFor({timeout: 48_000})
+    const citation = page.getByRole('button', {name: /Observed overall · A/}).first()
+    await citation.click()
+    await visible(page.getByRole('complementary', {name: 'Estimate details'}).getByText('17/20', {exact: true}))
+    await page.reload()
+    await page.getByText('Group aliases:', {exact: false}).waitFor({timeout: 12_000})
+  } else {
+    await visible(page.getByText('The last explanation request failed.', {exact: false}))
+  }
   await visible(page.getByRole('heading', {name: 'The ranking holds'}))
 
   await page.getByLabel('Include the source CSV').check()
@@ -114,6 +127,18 @@ try {
   await page.getByRole('button', {name: /Confirm plan & run/}).click()
   await visible(page.getByRole('heading', {name: 'The ranking holds'}))
   await visible(page.getByRole('button', {name: /Standardized, group A, 82.5%/}))
+  await page.getByRole('button', {name: 'Edit plan'}).click()
+  await page.getByLabel('Weight for stratum 1', {exact: true}).fill('0.004')
+  await page.getByLabel('Weight for stratum 2', {exact: true}).fill('0.996')
+  await page.getByRole('button', {name: /Confirm plan & run/}).click()
+  await visible(page.getByRole('button', {name: /Standardized, group A, 80.04%/}))
+  const slider = page.locator('input[type=range]:enabled')
+  assert.equal(await slider.getAttribute('aria-valuetext'), '0.4% easy, 99.6% hard')
+  await slider.press('Home')
+  await page.getByRole('button', {name: 'Apply target mix'}).click()
+  await visible(page.getByRole('button', {name: /Standardized, group A, 80%/}))
+  const changed = page.getByRole('table', {name: 'Standardized rates after reweighting'})
+  await visible(changed.getByRole('row').filter({hasText: '80.04%'}))
   const ids = await page.getByLabel('Recent experiments').locator('option').evaluateAll(options => options.map(option => option.value))
   await page.getByLabel('Recent experiments').selectOption(ids.at(-1))
   await visible(page.getByRole('heading', {name: 'The ranking reverses'}))
@@ -131,7 +156,7 @@ try {
   await page.getByRole('button', {name: /Confirm plan & run/}).click()
   await visible(page.getByRole('button', {name: /Standardized, group A, 50%/}))
   assert.deepEqual(crashes, [])
-  console.log('Browser workflow passed: examples, CSV validation, import, plan, charts, keyboard, both themes, four viewport widths, AI failure, reload, ZIP reproduction, and history.')
+  console.log('Browser workflow passed: examples, CSV validation, import, plan, charts, keyboard, both themes, four viewport widths, AI, reload, ZIP reproduction, and history.')
 } finally {
   try { await browser?.close() } finally {
     server.kill()

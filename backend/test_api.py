@@ -230,10 +230,12 @@ class APITest(unittest.TestCase):
             time.sleep(0.01)
 
     def test_export_in_clean_directory_and_unavailable_model(self):
-        source = (b"\xef\xbb\xbf\xef\xbb\xbfsystem,difficulty,success,notes\nA,easy,1,=1+2\nB,easy,0,'literal\n"
-                  b"A,hard,0,normal\nB,hard,1,  +1\n")
+        source = (b"\xef\xbb\xbf\xef\xbb\xbfsystem,difficulty,success,notes\n"
+                  b"<b>A</b>,easy,1,=1+2\nB,easy,0,'literal\n"
+                  b"<b>A</b>,hard,0,normal\nB,hard,1,  +1\n")
         dataset = self.ok(self.client.upload(source))
-        plan = self.plan(dataset, group_column="\ufeffsystem", claim="<script>alert(1)</script>")
+        plan = self.plan(dataset, group_column="\ufeffsystem", groups=["<b>A</b>", "B"],
+                         claim="<script>alert(1)</script>")
         run = self.run_plan(plan)
         path = "/runs/" + run["id"]
         status, error = self.client.request("POST", path + "/explanation")
@@ -245,7 +247,20 @@ class APITest(unittest.TestCase):
         for include in (False, True):
             blob = self.ok(self.client.request("GET", path + f"/export?include_data={str(include).lower()}"))
             with ZipFile(io.BytesIO(blob)) as archive, tempfile.TemporaryDirectory() as tmp:
-                self.assertNotIn(b"<script>", archive.read("report.html"))
+                report = archive.read("report.html").decode("utf-8")
+                self.assertNotIn("<script>", report)
+                self.assertNotIn("<b>A</b>", report)
+                for fragment in (
+                    "&lt;script&gt;alert(1)&lt;/script&gt;", "&lt;b&gt;A&lt;/b&gt;",
+                    "Observed overall", "Standardized to the target mix", "Within each stratum",
+                    "Positive outcomes", "Observations", "<code>1/2</code>",
+                    "<code>0.5*(1/1)+0.5*(0/1)</code>", "<dt>easy</dt><dd>50%</dd>",
+                ):
+                    self.assertIn(fragment, report)
+                command_text = "python3 reproduce.py"
+                if not include:
+                    command_text += " /path/to/original.csv"
+                self.assertIn(f"<code>{command_text}</code>", report)
                 self.assertEqual("data.csv" in archive.namelist(), include)
                 if include:
                     self.assertIn(b"'=1+2", archive.read("data.csv"))
@@ -257,6 +272,24 @@ class APITest(unittest.TestCase):
                     command.append("original.csv")
                 completed = subprocess.run(command, cwd=tmp, capture_output=True, text=True, check=True)
                 self.assertEqual(json.loads(completed.stdout)["estimates"], run["estimates"])
+
+    def test_export_failed_calculation_report(self):
+        dataset = self.ok(self.client.upload(
+            b"system,difficulty,success\nA,easy,1\nB,easy,0\nA,<b>hard</b>,0\n"
+        ))
+        plan = self.plan(dataset, target_weights={"easy": 0.5, "<b>hard</b>": 0.5})
+        run = self.run_plan(plan)
+        self.assertEqual(run["status"], "failed")
+        blob = self.ok(self.client.request("GET", "/runs/" + run["id"] + "/export"))
+        with ZipFile(io.BytesIO(blob)) as archive:
+            report = archive.read("report.html").decode("utf-8")
+            self.assertIn("<strong>failed</strong>", report)
+            self.assertIn("Calculation error", report)
+            self.assertIn(run["error"]["message"], report)
+            self.assertIn("<dt>group</dt><dd>B</dd>", report)
+            self.assertIn("<dt>stratum</dt><dd>&lt;b&gt;hard&lt;/b&gt;</dd>", report)
+            self.assertNotIn("<b>hard</b>", report)
+            self.assertNotIn("<table", report)
 
 
 class ExplanationTest(unittest.TestCase):

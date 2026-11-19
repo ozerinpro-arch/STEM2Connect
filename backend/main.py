@@ -25,7 +25,7 @@ from starlette.requests import ClientDisconnect
 from .calculation import (
     MAX_BYTES, AnalysisError, calculate, dataset_warnings, parse_csv, validate_plan,
 )
-from .explanation import explain, model_unavailable
+from .explanation import explain, explanation_timeout, model_unavailable
 from .export import export_run
 
 PREFIX = "/api/v1"
@@ -338,7 +338,10 @@ async def create_explanation(run_id: str, request: Request):
         raise AnalysisError("An explanation is already being generated.", "RATE_LIMITED", 429)
     session.explaining.add(run_id)
     try:
-        result = await asyncio.wait_for(asyncio.to_thread(explain, run), timeout=12)
+        weights = session.plans[run["plan_id"]]["target_weights"]
+        result = await asyncio.wait_for(
+            asyncio.to_thread(explain, run, weights), timeout=explanation_timeout(),
+        )
     except TimeoutError as exc:
         run["explanation_status"] = "failed"
         raise model_unavailable() from exc

@@ -50,11 +50,11 @@ export type Explanation = {
 const base = '/api/v1'
 const segment = encodeURIComponent
 
-async function request(path: string, options: RequestInit = {}) {
+async function request(path: string, options: RequestInit = {}, timeout = 25_000) {
   let response: Response
   try {
     response = await fetch(base + path, {
-      ...options, credentials: 'include', signal: AbortSignal.timeout(25_000),
+      ...options, credentials: 'include', signal: AbortSignal.timeout(timeout),
     })
   } catch (error) {
     throw new Error(error instanceof DOMException && error.name === 'TimeoutError'
@@ -71,7 +71,7 @@ async function request(path: string, options: RequestInit = {}) {
   return response
 }
 
-async function json<T>(path: string, body?: unknown, key?: string): Promise<T> {
+async function json<T>(path: string, body?: unknown, key?: string, timeout?: number): Promise<T> {
   const response = await request(path, body === undefined ? {} : {
     method: 'POST',
     headers: {
@@ -79,7 +79,7 @@ async function json<T>(path: string, body?: unknown, key?: string): Promise<T> {
       ...(key ? {'Idempotency-Key': key} : {}),
     },
     body: body instanceof FormData ? body : JSON.stringify(body),
-  })
+  }, timeout)
   return response.json()
 }
 
@@ -96,7 +96,7 @@ export const api = {
   plan: (id: string) => json<Plan>('/plans/' + segment(id)),
   startRun: (id: string, key: string) => json<Run>('/runs', {plan_id: id}, key),
   run: (id: string) => json<Run>('/runs/' + segment(id)),
-  explain: (id: string) => json<Explanation>('/runs/' + segment(id) + '/explanation', {}),
+  explain: (id: string) => json<Explanation>('/runs/' + segment(id) + '/explanation', {}, undefined, 50_000),
   download: async (id: string, includeData: boolean) => {
     const response = await request('/runs/' + segment(id) + '/export?include_data=' + includeData)
     if (response.headers.get('Content-Type')?.split(';')[0] !== 'application/zip') {

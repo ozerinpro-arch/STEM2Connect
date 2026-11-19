@@ -179,13 +179,76 @@ function ranking(estimates: Estimate[]) {
   return estimates[estimates[0].value > estimates[1].value ? 0 : 1].group
 }
 
-function Results({run, plan, selected, onSelect}: {
-  run: Run; plan: Plan; selected?: string; onSelect: (id: string) => void
+function PopulationMix({slice, observed, withinSlice, target}: {
+  slice: string; observed: Estimate[]; withinSlice: Estimate[]; target: number
+}) {
+  const rows = observed.flatMap(item => {
+    const count = withinSlice.find(estimate => estimate.group === item.group)?.denominator
+    if (count == null || !item.denominator) return []
+    return [{name: `Group ${item.group}`, value: count / item.denominator,
+      detail: `${formatNumber.format(count)} of ${formatNumber.format(item.denominator)} observations`}]
+  })
+  return <section className="mix" aria-label="Sample composition">
+    <div>
+      <h3>Who is in the sample?</h3>
+      <p>Share of observations in <strong>{slice}</strong>. Compare the collected samples with the target mix.</p>
+    </div>
+    <div className="mix-rows">
+      {[...rows, {name: 'Target mix', value: target, detail: 'Weight applied to both groups'}].map(row =>
+        <div className="mix-row" key={row.name}>
+          <span title={row.name}>{row.name}</span>
+          <div className="mix-track" aria-hidden="true"><span style={{width: `${row.value * 100}%`}} /></div>
+          <strong>{percent.format(row.value)}</strong>
+          <small>{row.detail}</small>
+        </div>)}
+    </div>
+  </section>
+}
+
+function MixExperiment({plan, run, previous, busy, onApply}: {
+  plan: Plan; run: Run; previous?: Run; busy: boolean;
+  onApply: (weights: Record<string, number>) => void
+}) {
+  const [first, second] = Object.keys(plan.target_weights).sort()
+  const initial = plan.target_weights[first]
+  const [draft, setWeight] = useState<number>()
+  const weight = draft ?? initial * 100
+  const firstPercent = weightsFormat.format(weight)
+  const secondPercent = weightsFormat.format(100 - weight)
+  const before = previous?.estimates.filter(item => item.estimand === 'standardized')
+  const after = run.estimates.filter(item => item.estimand === 'standardized')
+  return <section className="mix-experiment">
+    <h3>Try a different target mix</h3>
+    <p className="muted">Change the population weights and run a new analysis on the same observations.</p>
+    <label className="mix-slider">{first} <strong>{firstPercent}%</strong>
+      <input type="range" min="0" max="100" step="any" value={weight} aria-label={`Target weight for ${first}`}
+        aria-valuetext={`${firstPercent}% ${first}, ${secondPercent}% ${second}`} disabled={busy}
+        onChange={event => setWeight(Number(event.target.value))} />
+    </label>
+    <div className="section-head">
+      <p className="muted">{second} {secondPercent}%</p>
+      <button type="button" disabled={busy || draft === undefined || weight / 100 === initial}
+        onClick={() => onApply({[first]: weight / 100, [second]: (100 - weight) / 100})}>Apply target mix</button>
+    </div>
+    {before?.length === 2 && <table className="mix-change">
+      <caption>Standardized rates after reweighting</caption>
+      <thead><tr><th scope="col">Group</th><th scope="col">Previous mix</th><th scope="col">Current mix</th></tr></thead>
+      <tbody>{after.map(item => <tr key={item.id}><th scope="row">{item.group}</th>
+        <td>{percent.format(before.find(estimate => estimate.group === item.group)!.value)}</td>
+        <td>{percent.format(item.value)}</td></tr>)}</tbody>
+    </table>}
+  </section>
+}
+
+function Results({run, plan, selected, previous, busy, onSelect, onApply}: {
+  run: Run; plan: Plan; selected?: string; previous?: Run; busy: boolean;
+  onSelect: (id: string) => void; onApply: (weights: Record<string, number>) => void
 }) {
   const observed = run.estimates.filter(item => item.estimand === 'observed')
   const adjusted = run.estimates.filter(item => item.estimand === 'standardized')
   const strata = [...new Set(run.estimates.flatMap(item => item.stratum == null ? [] : [item.stratum]))]
   const [slice, setSlice] = useState(strata[0] ?? '')
+  const withinSlice = run.estimates.filter(item => item.stratum === slice)
   const rawLeader = ranking(observed)
   const adjustedLeader = ranking(adjusted)
   const reversed = rawLeader !== null && adjustedLeader !== null && rawLeader !== adjustedLeader
@@ -208,8 +271,10 @@ function Results({run, plan, selected, onSelect}: {
       <div className="section-head"><h3>Within each stratum</h3><label className="inline-label">Stratum<select aria-label="Stratum" value={slice}
         onChange={event => setSlice(event.target.value)}>{strata.map(name => <option key={name}>{name}</option>)}</select></label></div>
       <EstimateChart title={slice} description={`Target weight ${percent.format(plan.target_weights[slice])}`}
-        estimates={run.estimates.filter(item => item.stratum === slice)} order={plan.groups} active={selected} onSelect={onSelect} />
+        estimates={withinSlice} order={plan.groups} active={selected} onSelect={onSelect} />
+      <PopulationMix slice={slice} observed={observed} withinSlice={withinSlice} target={plan.target_weights[slice]} />
     </section>}
+    {strata.length === 2 && <MixExperiment plan={plan} run={run} previous={previous} busy={busy} onApply={onApply} />}
     <details className="preview"><summary>View all estimates as a table</summary>
       <div className="scroll" tabIndex={0} role="region" aria-label="All estimates">
         <table><thead><tr><th scope="col">Estimate</th><th scope="col">Group</th><th scope="col">Rate</th><th scope="col">Count</th></tr></thead>
@@ -242,6 +307,7 @@ function App() {
   const [dataset, setDataset] = useState<Dataset>()
   const [plan, setPlan] = useState<Plan>()
   const [run, setRun] = useState<Run>()
+  const [previous, setPrevious] = useState<Run>()
   const [selected, setSelected] = useState<string>()
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState('')
@@ -261,7 +327,8 @@ function App() {
   const missingStrata: string[] = Array.isArray(missing)
     ? missing.filter((name): name is string => typeof name === 'string') : []
 
-  function setExperiment(nextDataset: Dataset, nextPlan: Plan, nextRun: Run) {
+  function setExperiment(nextDataset: Dataset, nextPlan: Plan, nextRun: Run, prior?: Run) {
+    setPrevious(prior)
     setDataset(nextDataset)
     setPlan(nextPlan)
     setRun(nextRun)
@@ -382,6 +449,17 @@ function App() {
     })
   }
 
+  function applyMix(target_weights: Record<string, number>) {
+    if (!dataset || !plan || run?.status !== 'completed') return
+    void action('Recalculating for the new target mix', async () => {
+      const {id: _, confirmed: __, ...input} = plan
+      const updated = await api.savePlan({...input, target_weights})
+      setExperiment(dataset, updated, await calculate(updated), run)
+      setNotice('Target mix changed. The previous and current rates are shown below.')
+      focusWorkspace()
+    })
+  }
+
   function chooseEstimate(id: string) {
     setSelected(id)
     if (window.matchMedia('(max-width: 1040px)').matches) {
@@ -477,7 +555,8 @@ function App() {
             <PlanEditor key={plan?.id ?? dataset.id} dataset={dataset} initial={plan} missingStrata={missingStrata}
               busy={Boolean(busy)} onSubmit={confirm} />
             {plan && <button className="text-button" disabled={Boolean(busy)} onClick={() => setEditing(false)}>Cancel editing</button>}
-          </> : run?.status === 'completed' ? <Results key={run.id} run={run} plan={plan} selected={active?.id} onSelect={chooseEstimate} />
+          </> : run?.status === 'completed' ? <Results key={run.id} run={run} plan={plan} selected={active?.id}
+            previous={previous} busy={Boolean(busy)} onSelect={chooseEstimate} onApply={applyMix} />
             : run?.status === 'failed' ? <div className="alert" role="alert"><h2>Calculation needs a change</h2>
               <p>{run.error?.message}</p>
               {missingStrata.length > 0 && <p>Assign weights to these additional strata: {missingStrata.join(', ')}.</p>}
@@ -513,6 +592,9 @@ function App() {
           <h3>AI explanation</h3>
           {explanation ? <>
             <p>{explanation.summary}</p>
+            <p className="muted">Group aliases: G1 = {plan?.groups[0]}, G2 = {plan?.groups[1]}.
+              {plan && ` Strata: ${[...new Set(run.estimates.flatMap(item => item.stratum == null ? [] : [item.stratum]))]
+                .slice(0, 2).map((name, i) => `S${i + 1} = ${name}`).join(', ')}.`}</p>
             <ul>{explanation.statements.map((statement, index) => <li key={index}>{statement.text}
               <div className="actions">{statement.estimate_ids.map((id, i) => {
                 const estimate = run.estimates.find(item => item.id === id)
@@ -523,7 +605,7 @@ function App() {
               })}</div></li>)}</ul>
             {explanation.limitations.length > 0 && <ul>{explanation.limitations.map((limit, i) => <li key={i}>{limit}</li>)}</ul>}
           </> : <>
-            <p>Send aggregate estimates with anonymous group labels to the configured AI service.</p>
+            <p>Share aggregate estimates and anonymous group labels with the configured model.</p>
             {run.explanation_status === 'failed' && <p className="muted">The last explanation request failed. Your estimates are available.</p>}
             <label className="check"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />
               Allow sharing aggregate estimates</label>
