@@ -362,3 +362,11 @@ async def download(run_id: str, request: Request, include_data: bool = False):
     return Response(archive, media_type="application/zip",
                     headers={"Content-Disposition": f'attachment; filename="{run_id}.zip"',
                              "Cache-Control": "no-store"})
+
+
+# The built client and API can share one origin without a development proxy.
+frontend = FIXTURES.parents[1] / "frontend" / "dist"
+if frontend.is_dir():
+    from starlette.staticfiles import StaticFiles
+
+    api.mount("/", StaticFiles(directory=frontend, html=True), name="frontend")

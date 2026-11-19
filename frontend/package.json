@@ -1,0 +1,22 @@
+{
+  "name": "researchlens",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test:e2e": "npm run build && node tests/workspace.mjs"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "playwright": "1.65.1",
+    "typescript": "~5.9.3",
+    "vite": "6.4.6"
+  }
+}
